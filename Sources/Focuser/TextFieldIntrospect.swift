@@ -10,21 +10,25 @@ import Introspect
 
 class TextFieldObserver: NSObject, UITextFieldDelegate {
     var onReturnTap: () -> () = {}
+    var onEditingBegin: () -> () = {}
+    var onEditingEnd: () -> () = {}
     weak var forwardToDelegate: UITextFieldDelegate?
     
     @available(iOS 2.0, *)
     func textFieldShouldBeginEditing(_ textField: UITextField) -> Bool {
-        forwardToDelegate?.textFieldShouldBeginEditing?(textField) ?? true
+        return forwardToDelegate?.textFieldShouldBeginEditing?(textField) ?? true
     }
 
     @available(iOS 2.0, *)
     func textFieldDidBeginEditing(_ textField: UITextField) {
+//        print("textfield DidBegin")
+        onEditingBegin()
         forwardToDelegate?.textFieldDidBeginEditing?(textField)
     }
 
     @available(iOS 2.0, *)
     func textFieldShouldEndEditing(_ textField: UITextField) -> Bool {
-        forwardToDelegate?.textFieldShouldEndEditing?(textField) ?? true
+        return forwardToDelegate?.textFieldShouldEndEditing?(textField) ?? true
     }
 
     @available(iOS 2.0, *)
@@ -34,6 +38,8 @@ class TextFieldObserver: NSObject, UITextFieldDelegate {
 
     @available(iOS 10.0, *)
     func textFieldDidEndEditing(_ textField: UITextField, reason: UITextField.DidEndEditingReason) {
+//        print("textfield DidEnd")
+        onEditingEnd()
         forwardToDelegate?.textFieldDidEndEditing?(textField)
     }
 
@@ -91,5 +97,44 @@ public struct FocusModifier<Value: FocusStateCompliant & Hashable>: ViewModifier
             .simultaneousGesture(TapGesture().onEnded {
               focusedField = equals
             })
+    }
+}
+
+public struct FocusModifierBool: ViewModifier {
+    @Binding var isFocusedField: Bool
+    @State var observer = TextFieldObserver()
+    
+    public func body(content: Content) -> some View {
+        content
+            .introspectTextField { tf in
+                if !(tf.delegate is TextFieldObserver) {
+                    observer.forwardToDelegate = tf.delegate
+                    tf.delegate = observer
+                }
+                
+                /// when user taps return we navigate to next responder
+                observer.onReturnTap = {
+                    withAnimation {
+                        isFocusedField = false
+                    }
+                }
+                
+                observer.onEditingBegin = {
+                    withAnimation {
+                        isFocusedField = true
+                    }
+                }
+                
+                observer.onEditingEnd = {
+                    withAnimation {
+                        isFocusedField = false
+                    }
+                }
+            } /// tap sub view
+//            .simultaneousGesture(TapGesture().onEnded {
+//                withAnimation {
+//                    isFocusedField = true
+//                }
+//            })
     }
 }
