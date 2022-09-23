@@ -65,7 +65,7 @@ class TextFieldObserver: NSObject, UITextFieldDelegate {
     }
 }
 
-public struct FocusModifier<Value: FocusStateCompliant & Hashable>: ViewModifier {
+public struct FocusModifier<Value: Hashable>: ViewModifier {
     @Binding var focusedField: Value?
     var equals: Value
     @State var observer = TextFieldObserver()
@@ -78,25 +78,24 @@ public struct FocusModifier<Value: FocusStateCompliant & Hashable>: ViewModifier
                     tf.delegate = observer
                 }
                 
-                /// when user taps return we navigate to next responder
-                observer.onReturnTap = {
-                    focusedField = focusedField?.next ?? Value.last
+                observer.onEditingBegin = {
+                    focusedField = equals
                 }
-
-                /// to show kayboard with `next` or `return`
-                if equals.hashValue == Value.last.hashValue {
-                    tf.returnKeyType = .done
-                } else {
-                    tf.returnKeyType = .next
+                
+                observer.onEditingEnd = {
+                    focusedField = nil
+                }
+                
+                observer.onReturnTap = {
+                    focusedField = nil
                 }
                 
                 if focusedField == equals {
                     tf.becomeFirstResponder()
+                } else {
+                    tf.endEditing(true)
                 }
             }
-            .simultaneousGesture(TapGesture().onEnded {
-              focusedField = equals
-            })
     }
 }
 
@@ -112,29 +111,23 @@ public struct FocusModifierBool: ViewModifier {
                     tf.delegate = observer
                 }
                 
-                /// when user taps return we navigate to next responder
-                observer.onReturnTap = {
-                    withAnimation {
-                        isFocusedField = false
-                    }
-                }
-                
                 observer.onEditingBegin = {
-                    withAnimation {
-                        isFocusedField = true
-                    }
+                    isFocusedField = true
                 }
                 
                 observer.onEditingEnd = {
-                    withAnimation {
-                        isFocusedField = false
-                    }
+                    isFocusedField = false
                 }
-            } /// tap sub view
-//            .simultaneousGesture(TapGesture().onEnded {
-//                withAnimation {
-//                    isFocusedField = true
-//                }
-//            })
+                
+                observer.onReturnTap = {
+                    isFocusedField = false
+                }
+                
+                if isFocusedField == true {
+                    tf.becomeFirstResponder()
+                } else {
+                    tf.endEditing(true)
+                }
+            }
     }
 }
