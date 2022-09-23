@@ -96,6 +96,9 @@ public struct FocusModifier<Value: Hashable>: ViewModifier {
                     tf.endEditing(true)
                 }
             }
+            .simultaneousGesture(TapGesture().onEnded {
+                focusedField = equals
+            })
     }
 }
 
@@ -129,5 +132,8 @@ public struct FocusModifierBool: ViewModifier {
                     tf.endEditing(true)
                 }
             }
+            .simultaneousGesture(TapGesture().onEnded {
+                isFocusedField = true
+            })
     }
 }
