@@ -9,8 +9,13 @@ import SwiftUI
 
 
 public extension View {
-    func focusedLegacy<T: Hashable>(_ focusedField: Binding<T?>, equals: T) -> some View {
+    
+    func focusedLegacy<T: FocusStateCompliant>(_ focusedField: Binding<T?>, equals: T) -> some View {
         modifier(FocusModifier(focusedField: focusedField, equals: equals))
+    }
+    
+    func focusedLegacy<T: Hashable>(_ focusedField: Binding<T?>, equals: T) -> some View {
+        modifier(FocusModifierHashableOnly(focusedField: focusedField, equals: equals))
     }
     
     func focusedLegacy(_ condition: Binding<Bool>) -> some View {

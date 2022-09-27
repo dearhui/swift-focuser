@@ -21,7 +21,6 @@ class TextFieldObserver: NSObject, UITextFieldDelegate {
 
     @available(iOS 2.0, *)
     func textFieldDidBeginEditing(_ textField: UITextField) {
-//        print("textfield DidBegin")
         onEditingBegin()
         forwardToDelegate?.textFieldDidBeginEditing?(textField)
     }
@@ -38,7 +37,6 @@ class TextFieldObserver: NSObject, UITextFieldDelegate {
 
     @available(iOS 10.0, *)
     func textFieldDidEndEditing(_ textField: UITextField, reason: UITextField.DidEndEditingReason) {
-//        print("textfield DidEnd")
         onEditingEnd()
         forwardToDelegate?.textFieldDidEndEditing?(textField)
     }
@@ -65,7 +63,42 @@ class TextFieldObserver: NSObject, UITextFieldDelegate {
     }
 }
 
-public struct FocusModifier<Value: Hashable>: ViewModifier {
+public struct FocusModifier<Value: FocusStateCompliant & Hashable>: ViewModifier {
+    @Binding var focusedField: Value?
+    var equals: Value
+    @State var observer = TextFieldObserver()
+    
+    public func body(content: Content) -> some View {
+        content
+            .introspectTextField { tf in
+                if !(tf.delegate is TextFieldObserver) {
+                    observer.forwardToDelegate = tf.delegate
+                    tf.delegate = observer
+                }
+                
+                /// when user taps return we navigate to next responder
+                observer.onReturnTap = {
+                    focusedField = focusedField?.next ?? Value.last
+                }
+
+                /// to show kayboard with `next` or `return`
+                if equals.hashValue == Value.last.hashValue {
+                    tf.returnKeyType = .done
+                } else {
+                    tf.returnKeyType = .next
+                }
+                
+                if focusedField == equals {
+                    tf.becomeFirstResponder()
+                }
+            }
+            .simultaneousGesture(TapGesture().onEnded {
+              focusedField = equals
+            })
+    }
+}
+
+public struct FocusModifierHashableOnly<Value: Hashable>: ViewModifier {
     @Binding var focusedField: Value?
     var equals: Value
     @State var observer = TextFieldObserver()
